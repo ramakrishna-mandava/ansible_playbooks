@@ -1,0 +1,43 @@
+---
+- name: this play book is used to check the status of the services,vas.pid file and pid value of vas in host nodes
+  hosts: all
+  gather_facts: no
+  ignore_errors: yes
+  tasks:
+    - name: starting a task to check the status of the services
+      shell: systemctl status auditd.service
+#      loop:
+#        - kdump.service
+#        - auditd.service
+      register: result
+      changed_when: false
+    - debug:
+        var: result.stdout
+    - name: checking wether file exists
+      shell: find /tmp/one/two -type f -name "blabla.pid"
+      register: file
+    - debug:
+        var: file.stdout_lines
+    - name: another way to check if a file exists
+      stat:
+        path: /tmp/one/two/blabla.pid
+      register: file_result
+
+    - name:
+      debug:
+        msg: "file is not present in the path"
+      when: file_result.stat.exists == false
+    - name: creating a file if its not present in the path or got deleted
+      file:
+        path: /tmp/blabla.pid
+        state: touch
+        mode: '0644'
+        owner: ansibleuser
+        group: ansibleuser
+      when: file_result.stat.exists == false
+
+    - name: adding content in file which is created in previous task    
+      copy:
+        content: "#1111"
+        dest: /tmp/blabla.pid
+      when: file_result.stat.exists == false  
